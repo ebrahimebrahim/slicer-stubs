@@ -1,0 +1,9 @@
+# Ignore everything (generated stubs are 12MB+)
+*
+
+# Un-ignore the source files needed to regenerate
+!.gitignore
+!README.md
+!CLAUDE.md
+!generate_all_stubs.sh
+!generate_pythonqt_stubs.py
