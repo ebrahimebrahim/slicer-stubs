@@ -3,6 +3,7 @@
 
 # Un-ignore the source files needed to regenerate
 !.gitignore
+!LICENSE
 !README.md
 !CLAUDE.md
 !generate_all_stubs.sh
