@@ -17,9 +17,7 @@ and PythonQt-wrapped Qt widgets (`qMRMLNodeComboBox`, etc.).
 Run after each Slicer superbuild rebuild (new/changed C++ classes won't appear until you regenerate):
 
 ```bash
-./generate_all_stubs.sh <superbuild-dir> <output-dir>
-# Example:
-./generate_all_stubs.sh ~/slicer-superbuild-v5.10 ~/slicer-stubs
+./generate_all_stubs.sh <superbuild-dir> .
 ```
 
 Prerequisites:
@@ -41,34 +39,12 @@ The script installs `mypy` into Slicer's bundled Python if not already present.
 
 ## VS Code setup
 
-Add to `.vscode/settings.json` in your Slicer source or workspace:
+The generation script prints VS Code settings to copy into your project's
+`.vscode/settings.json` for PyLance autocomplete.
 
-```json
-{
-  "python.analysis.stubPath": "<output-dir>",
-  "python.analysis.extraPaths": [
-    "<superbuild>/Slicer-build/bin/Python",
-    "<superbuild>/Slicer-build/lib/Slicer-5.10/qt-scripted-modules",
-    "<superbuild>/Slicer-build/lib/Slicer-5.10/qt-loadable-modules/Python",
-    "<superbuild>/python-install/lib/python3.12/site-packages",
-    "<superbuild>/VTK-build/lib/python3.12/site-packages",
-    "<superbuild>/CTK-build/CTK-build/bin/Python"
-  ]
-}
-```
-
-### Interpreter path (optional)
-
-You can omit `python.defaultInterpreterPath` or point it at your system Python
-(`/usr/bin/python3`). The superbuild's Python (`python-install/bin/python` and
-`PythonSlicer`) cannot run standalone — both need `LD_LIBRARY_PATH` set to find
-`libpython3.12.so`, so VS Code's Python extension can't invoke them and will
-show a "Select Interpreter" warning in the status bar.
-
-This doesn't affect autocomplete: **PyLance uses `stubPath` and `extraPaths` for
-all type analysis, not the interpreter.** The interpreter setting only matters for
-running/debugging scripts via VS Code's play button, which isn't how you run
-Slicer Python code anyway.
+`python.defaultInterpreterPath` can be omitted — the superbuild's Python
+cannot run standalone (needs `LD_LIBRARY_PATH` for `libpython3.12.so`).
+**PyLance uses `stubPath` and `extraPaths` for type analysis, not the interpreter.**
 
 ## Known limitations
 

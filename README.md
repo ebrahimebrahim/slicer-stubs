@@ -20,27 +20,12 @@ slicer.vtkMRMLScalarVolumeNode  # recognized, with method signatures
 ## Quick start
 
 ```bash
-# 1. Generate stubs (takes ~2 minutes)
-./generate_all_stubs.sh ~/slicer-superbuild-v5.10 ~/slicer-stubs
-
-# 2. Add to .vscode/settings.json in your project
+# Generate stubs (takes ~2 minutes)
+./generate_all_stubs.sh <superbuild-dir> .
 ```
 
-```json
-{
-  "python.analysis.stubPath": "/home/you/slicer-stubs",
-  "python.analysis.extraPaths": [
-    "<superbuild>/Slicer-build/bin/Python",
-    "<superbuild>/Slicer-build/lib/Slicer-5.10/qt-scripted-modules",
-    "<superbuild>/Slicer-build/lib/Slicer-5.10/qt-loadable-modules/Python",
-    "<superbuild>/python-install/lib/python3.12/site-packages",
-    "<superbuild>/VTK-build/lib/python3.12/site-packages",
-    "<superbuild>/CTK-build/CTK-build/bin/Python"
-  ]
-}
-```
-
-Replace `<superbuild>` with your actual superbuild path.
+The script prints VS Code settings to copy into your project's
+`.vscode/settings.json` for PyLance autocomplete.
 
 You do **not** need to set `python.defaultInterpreterPath` — the superbuild's
 Python can't run standalone (it needs `LD_LIBRARY_PATH` for `libpython3.12.so`).
@@ -69,7 +54,7 @@ Total: ~12 MB, ~220 stub files.
 Re-run after rebuilding Slicer (new/renamed C++ classes won't appear until you do):
 
 ```bash
-./generate_all_stubs.sh ~/slicer-superbuild-v5.10 ~/slicer-stubs
+./generate_all_stubs.sh <superbuild-dir> .
 ```
 
 ## How it works
