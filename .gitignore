@@ -8,3 +8,4 @@
 !CLAUDE.md
 !generate_all_stubs.sh
 !generate_pythonqt_stubs.py
+!clean_stubs.sh

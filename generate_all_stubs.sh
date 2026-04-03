@@ -15,8 +15,8 @@
 
 set -euo pipefail
 
-SUPERBUILD="${1:?Usage: $0 <superbuild-dir> <output-dir>}"
-OUTPUT_DIR="${2:?Usage: $0 <superbuild-dir> <output-dir>}"
+SUPERBUILD="$(cd "${1:?Usage: $0 <superbuild-dir> <output-dir>}" && pwd)"
+OUTPUT_DIR="$(cd "${2:?Usage: $0 <superbuild-dir> <output-dir>}" && pwd)"
 
 SLICER_BUILD="$SUPERBUILD/Slicer-build"
 PYTHON_SLICER="$SUPERBUILD/python-install/bin/PythonSlicer"
@@ -175,20 +175,18 @@ if command -v xvfb-run &>/dev/null && [ -x "$SLICER_EXE" ]; then
     echo "    Adding PythonQt re-exports to slicer/__init__.pyi..."
     xvfb-run "$SLICER_EXE" --no-splash --no-main-window \
         --python-script /dev/stdin --exit-after-startup 2>/dev/null <<PYEOF
-import importlib, os
+import importlib, os, glob
 OUTPUT_DIR = "$OUTPUT_DIR"
-PYTHONQT_KITS = [
-    "qMRMLWidgetsPythonQt",
-    "qSlicerBaseQTCorePythonQt",
-    "qSlicerBaseQTCLIPythonQt",
-    "qSlicerBaseQTGUIPythonQt",
-    "qSlicerBaseQTAppPythonQt",
-]
+# Discover all PythonQt modules that had stubs generated
+pythonqt_modules = sorted(
+    os.path.basename(p).replace(".pyi", "")
+    for p in glob.glob(os.path.join(OUTPUT_DIR, "*PythonQt.pyi"))
+)
 stub_path = os.path.join(OUTPUT_DIR, "slicer", "__init__.pyi")
 with open(stub_path) as f:
     existing = f.read()
 source_map = {}
-for mod_name in PYTHONQT_KITS:
+for mod_name in pythonqt_modules:
     try:
         mod = importlib.import_module(mod_name)
         for attr in dir(mod):
@@ -208,12 +206,57 @@ with open(stub_path, "w") as f:
         f.write(line + "\n")
     f.write("\n# Dynamic attributes set at runtime by SlicerApp")
     f.write(parts[1])
-print(f"    Added {len(new_lines)} PythonQt re-exports")
+print(f"    Added {len(new_lines)} PythonQt re-exports from {len(pythonqt_modules)} modules")
 PYEOF
 else
     echo "==> Step 7: SKIPPED (xvfb-run or Slicer not found)"
     echo "    Install xvfb (apt install xvfb) and ensure Slicer is built to generate PythonQt stubs"
 fi
+
+# ── Step 8: Fix C++ type leaks in stubgen output ────────────────────
+# stubgen sometimes emits duplicate overloads with raw C++ signatures
+# (e.g. "vtkPolyData*polyData" instead of "polyData: vtkPolyData").
+# The valid Python-typed overload is always present, so remove the bad ones.
+echo "==> Step 8: Removing overloads with C++ type syntax..."
+"$PYTHON_SLICER" -c "
+import ast, glob, os
+
+def fix_stub(path):
+    with open(path) as f:
+        lines = f.readlines()
+    fixes = 0
+    for _attempt in range(50):
+        try:
+            ast.parse(''.join(lines))
+            break
+        except SyntaxError as e:
+            # Search backwards from error line for @overload
+            start = e.lineno - 2  # 0-indexed, start searching before error
+            while start >= 0 and '@overload' not in lines[start]:
+                start -= 1
+            if start < 0:
+                start = e.lineno - 1
+            # Search forward from error line for '...' (end of stub def)
+            end = e.lineno - 1
+            while end < len(lines) and '...' not in lines[end]:
+                end += 1
+            end += 1  # include the line with '...'
+            del lines[start:end]
+            fixes += 1
+    else:
+        print(f'    WARN: could not fully fix {os.path.basename(path)}')
+    if fixes:
+        with open(path, 'w') as f:
+            f.writelines(lines)
+    return fixes
+
+total = 0
+for path in sorted(glob.glob(os.path.join('$OUTPUT_DIR', '**', '*.pyi'), recursive=True)):
+    n = fix_stub(path)
+    if n:
+        total += n
+print(f'    Removed {total} bad overloads across generated stubs')
+"
 
 # ── Done ──────────────────────────────────────────────────────────────
 echo ""
@@ -232,7 +275,10 @@ echo "      \"$SLICER_BUILD/lib/Slicer-5.10/qt-loadable-modules/Python\","
 echo "      \"$SUPERBUILD/python-install/lib/python3.12/site-packages\","
 echo "      \"$SUPERBUILD/VTK-build/lib/python3.12/site-packages\","
 echo "      \"$SUPERBUILD/CTK-build/CTK-build/bin/Python\""
-echo '    ]'
+echo '    ],'
+echo '    "python.analysis.diagnosticSeverityOverrides": {'
+echo '      "reportMissingModuleSource": "none"'
+echo '    }'
 echo '  }'
 echo ""
 echo "Note: python.defaultInterpreterPath is intentionally omitted."

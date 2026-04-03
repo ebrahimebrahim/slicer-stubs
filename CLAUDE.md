@@ -10,7 +10,8 @@ and PythonQt-wrapped Qt widgets (`qMRMLNodeComboBox`, etc.).
 - `generate_pythonqt_stubs.py` — Helper called by the main script (step 7). Custom stub
   generator for PythonQt modules, which mypy's `InspectionStubGenerator` can't handle because
   PythonQt uses `PythonQtClassWrapper` instead of regular Python classes.
-- `*.pyi`, `slicer/`, `vtkmodules/` — Generated output (git-ignored). ~12 MB covering ~210 modules.
+- `clean_stubs.sh` — Removes all generated stubs (`*.pyi`, `slicer/`, `vtkmodules/`).
+- `*.pyi`, `slicer/`, `vtkmodules/` — Generated output (git-ignored). ~12 MB covering ~220 modules.
 
 ## Regenerating stubs
 
@@ -35,7 +36,10 @@ The script installs `mypy` into Slicer's bundled Python if not already present.
    so a post-processing step writes explicit re-exports into `mrml.pyi` and `slicer/__init__.pyi`.
 4. **PythonQt modules** (34 `*PythonQt.so`): These crash outside a running Slicer app, so they're
    generated via `xvfb-run Slicer --python-script generate_pythonqt_stubs.py`. The custom generator
-   parses PythonQt's `X.method(args) -> type` docstrings.
+   parses PythonQt's `X.method(args) -> type` docstrings. Classes from all PythonQt modules
+   (including loadable modules) are re-exported into `slicer/__init__.pyi`.
+5. **Post-processing**: Removes duplicate overloads where `stubgen` leaks raw C++ type signatures,
+   and handles Python keywords used as PythonQt method/parameter names.
 
 ## VS Code setup
 

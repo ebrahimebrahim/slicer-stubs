@@ -49,7 +49,13 @@ PyLance uses `stubPath` and `extraPaths` for autocomplete, not the interpreter.
 
 Total: ~12 MB, ~220 stub files.
 
-## Regenerating
+## Cleaning and regenerating
+
+To remove all generated stubs:
+
+```bash
+./clean_stubs.sh
+```
 
 Re-run after rebuilding Slicer (new/renamed C++ classes won't appear until you do):
 
@@ -64,7 +70,12 @@ Re-run after rebuilding Slicer (new/renamed C++ classes won't appear until you d
 2. Fixes wildcard re-exports (`from MRMLCorePython import *`) that `stubgen`
    doesn't resolve, so `slicer.vtkMRMLNode` works, not just `MRMLCorePython.vtkMRMLNode`
 3. Generates PythonQt widget stubs via `xvfb-run Slicer` with a custom generator
-   that parses PythonQt docstrings (mypy can't handle `PythonQtClassWrapper`)
+   that parses PythonQt docstrings (mypy can't handle `PythonQtClassWrapper`).
+   Re-exports classes from all PythonQt modules into `slicer/__init__.pyi` so
+   e.g. `slicer.qMRMLSegmentEditorWidget` resolves.
+4. Post-processes all stubs to remove duplicate overloads where `stubgen` leaks
+   raw C++ type signatures, and handles Python keywords in PythonQt method/parameter
+   names
 
 ## Platform support
 
@@ -92,4 +103,5 @@ stubs), and path handling throughout the script.
 |---|---|---|
 | `generate_all_stubs.sh` | Yes | Main generation script |
 | `generate_pythonqt_stubs.py` | Yes | PythonQt stub generator (called by main script) |
+| `clean_stubs.sh` | Yes | Remove all generated stubs |
 | `*.pyi`, `slicer/`, `vtkmodules/` | No (git-ignored) | Generated output |

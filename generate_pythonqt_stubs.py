@@ -10,6 +10,7 @@ method signatures.
 """
 
 import importlib
+import keyword
 import os
 import re
 
@@ -94,6 +95,8 @@ def parse_doc_signature(doc):
     args_str = match.group(2).strip()
     ret_type = match.group(3)
     args = [a.strip() for a in args_str.split(",") if a.strip()] if args_str else []
+    # Escape Python keywords used as parameter names (e.g. "from" -> "from_")
+    args = [a + "_" if keyword.iskeyword(a) else a for a in args]
     return name, args, ret_type
 
 
@@ -128,6 +131,9 @@ def generate_class_stub(cls_name, cls):
         type_name = type(attr).__name__
 
         if type_name in ("builtin_qt_slot", "method_descriptor", "builtin_function_or_method"):
+            # Skip methods whose names are Python keywords (e.g. QWidget.raise)
+            if keyword.iskeyword(attr_name):
+                continue
             doc = getattr(attr, "__doc__", "")
             _, args, ret_type = parse_doc_signature(doc)
             if args is not None:
