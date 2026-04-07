@@ -167,9 +167,9 @@ print(f'    slicer/__init__.pyi: {len(source_map)} VTK re-exports')
 SLICER_EXE="$SLICER_BUILD/Slicer"
 if command -v xvfb-run &>/dev/null && [ -x "$SLICER_EXE" ]; then
     echo "==> Step 7: Generating PythonQt stubs (via xvfb-run + Slicer)..."
-    xvfb-run "$SLICER_EXE" --no-splash --no-main-window \
+    SLICER_STUBS_OUTPUT_DIR="$OUTPUT_DIR" xvfb-run "$SLICER_EXE" --no-splash --no-main-window \
         --python-script "$OUTPUT_DIR/generate_pythonqt_stubs.py" \
-        --exit-after-startup 2>&1 | grep '^\s*OK\|^\s*SKIP\|^Done'
+        --exit-after-startup 2>&1 | grep '^\s*OK\|^\s*SKIP\|^Done' || true
 
     # Add PythonQt re-exports to slicer/__init__.pyi
     echo "    Adding PythonQt re-exports to slicer/__init__.pyi..."

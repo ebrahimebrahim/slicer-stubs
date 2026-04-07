@@ -14,7 +14,7 @@ import keyword
 import os
 import re
 
-OUTPUT_DIR = "/home/ebrahim/slicer-stubs"
+OUTPUT_DIR = os.environ.get("SLICER_STUBS_OUTPUT_DIR", os.path.dirname(os.path.abspath(__file__)))
 
 PYTHONQT_MODULES = [
     "qMRMLWidgetsPythonQt",
